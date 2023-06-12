@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace WindowSharingHider
@@ -11,12 +14,16 @@ namespace WindowSharingHider
         {
             public String Title { get; set; }
             public IntPtr Handle { get; set; }
+            public int ProcessId { get; set; }
             public Boolean stillExists = false;
             public override string ToString()
             {
                 return Title;
             }
         }
+
+        private List<(string Title, int ProcessId)> savedWindowTitles = new List<(string, int)>();
+
         public MainWindow()
         {
             InitializeComponent();
@@ -25,7 +32,12 @@ namespace WindowSharingHider
             timer.Tick += Timer_Tick;
             timer.Start();
         }
+
         Boolean flagToPreserveSettings = false;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int lpdwProcessId);
+
         private void Timer_Tick(object sender, EventArgs e)
         {
             foreach (WindowInfo window in windowListCheckBox.Items) window.stillExists = false;
@@ -33,12 +45,24 @@ namespace WindowSharingHider
             foreach (var window in currWindows)
             {
                 var existingWindow = windowListCheckBox.Items.Cast<WindowInfo>().FirstOrDefault(i => i.Handle == window.Key);
+
                 if (existingWindow != null)
                 {
                     existingWindow.stillExists = true;
                     existingWindow.Title = window.Value;
                 }
-                else windowListCheckBox.Items.Add(new WindowInfo { Title = window.Value, Handle = window.Key, stillExists = true });
+                else
+                {
+                    GetWindowThreadProcessId(window.Key, out int processId);
+                    var newWindow = new WindowInfo { Title = window.Value, Handle = window.Key, ProcessId = processId, stillExists = true };
+                    windowListCheckBox.Items.Add(newWindow);
+                    // Set the status of the new window based on the savedWindowTitles list
+                    if (savedWindowTitles.Any(item => item.Title == window.Value || item.ProcessId == processId))
+                    {
+                        var index = windowListCheckBox.Items.IndexOf(newWindow);
+                        windowListCheckBox.SetItemChecked(index, true);
+                    }
+                }
             }
             foreach (var window in windowListCheckBox.Items.Cast<WindowInfo>().ToArray()) if (window.stillExists == false) windowListCheckBox.Items.Remove(window);
             foreach (var window in windowListCheckBox.Items.Cast<WindowInfo>().ToArray())
@@ -49,6 +73,18 @@ namespace WindowSharingHider
                 {
                     WindowHandler.SetWindowDisplayAffinity(window.Handle, target ? 0x11 : 0x0);
                     status = WindowHandler.GetWindowDisplayAffinity(window.Handle) > 0;
+
+                    if (status)
+                    {
+                        if (!savedWindowTitles.Contains((window.Title, window.ProcessId)))
+                        {
+                            savedWindowTitles.Add((window.Title, window.ProcessId));
+                        }
+                    }
+                    else
+                    {
+                        savedWindowTitles.Remove((window.Title, window.ProcessId));
+                    }
                 }
                 windowListCheckBox.SetItemChecked(windowListCheckBox.Items.IndexOf(window), status);
             }
