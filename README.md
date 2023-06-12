@@ -1,4 +1,7 @@
 # Window Sharing Hider
+
+ For my personal use.
+
  Hides Windows during screen sharing. Works with Teams, Zoom, Discord, etc.
  
  Single app, no dll's, works on both x86/x64
