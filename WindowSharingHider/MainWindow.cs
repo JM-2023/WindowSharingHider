@@ -18,7 +18,7 @@ namespace WindowSharingHider
             public Boolean stillExists = false;
             public override string ToString()
             {
-                return Title;
+                return $"{Title} - PID: {ProcessId}";
             }
         }
 
