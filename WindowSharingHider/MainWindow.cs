@@ -57,10 +57,17 @@ namespace WindowSharingHider
                     var newWindow = new WindowInfo { Title = window.Value, Handle = window.Key, ProcessId = processId, stillExists = true };
                     windowListCheckBox.Items.Add(newWindow);
                     // Set the status of the new window based on the savedWindowTitles list
+                    // Check if the current window (either by title or process ID) exists in the savedWindowTitles list
                     if (savedWindowTitles.Any(item => item.Title == window.Value || item.ProcessId == processId))
                     {
+                        // Get the index of the new window in the windowListCheckBox
                         var index = windowListCheckBox.Items.IndexOf(newWindow);
+                        // Set the status of the new window in the windowListCheckBox to checked (true)
                         windowListCheckBox.SetItemChecked(index, true);
+
+                        // Cancel and reapply the SetWindowDisplayAffinity to prevent black windows error
+                        WindowHandler.SetWindowDisplayAffinity(newWindow.Handle, 0x0); // Cancel
+                        WindowHandler.SetWindowDisplayAffinity(newWindow.Handle, 0x11); // Reapply
                     }
                 }
             }
