@@ -11,32 +11,16 @@ namespace WindowSharingHider
     public partial class MainWindow : Form
     {
         private List<WindowInfo> currentWindows = new List<WindowInfo>();
-        private List<(string Title, int ProcessId)> savedWindowTitles = new List<(string, int)>();
         
+        // Use both sets to track hidden states:
+        private HashSet<int> hiddenPIDs = new HashSet<int>();
+        private HashSet<string> hiddenTitles = new HashSet<string>();
+
         public MainWindow()
         {
             InitializeComponent();
-            LoadSettings();
             RefreshWindowList();
             timer.Start();
-        }
-
-        private void LoadSettings()
-        {
-            savedWindowTitles = SettingsManager.LoadHiddenWindows();
-        }
-
-        private void btnSaveSettings_Click(object sender, EventArgs e)
-        {
-            SettingsManager.SaveHiddenWindows(savedWindowTitles);
-            lblStatus.Text = "Settings saved.";
-        }
-
-        private void btnLoadSettings_Click(object sender, EventArgs e)
-        {
-            savedWindowTitles = SettingsManager.LoadHiddenWindows();
-            lblStatus.Text = "Settings loaded.";
-            ApplyCurrentSettings();
         }
 
         private void btnRefresh_Click(object sender, EventArgs e)
@@ -51,8 +35,6 @@ namespace WindowSharingHider
 
         private void timer_Tick(object sender, EventArgs e)
         {
-            // We can choose to automatically refresh windows or only if needed.
-            // For now, let's refresh.
             RefreshWindowList();
         }
 
@@ -81,7 +63,6 @@ namespace WindowSharingHider
             }
 
             currentWindows = updatedList;
-
             ApplyFilter();
         }
 
@@ -100,32 +81,28 @@ namespace WindowSharingHider
                 var item = new ListViewItem(w.Title);
                 item.SubItems.Add(w.ProcessId.ToString());
                 item.Tag = w;
-                // Check if currently hidden or not
-                bool shouldBeChecked = savedWindowTitles.Any(sw => sw.ProcessId == w.ProcessId || sw.Title == w.Title);
-                // Attempt to read current display affinity:
+
+                // Determine if this window should be hidden
+                bool shouldBeHidden = hiddenPIDs.Contains(w.ProcessId) || hiddenTitles.Contains(w.Title);
                 bool currentlyHidden = WindowHandler.GetWindowDisplayAffinity(w.Handle) > 0;
-                // If saved says it should be hidden but not currently, fix it:
-                if (shouldBeChecked && !currentlyHidden)
+
+                // If it should be hidden but isn't, hide it
+                if (shouldBeHidden && !currentlyHidden)
                 {
                     WindowHandler.SetWindowDisplayAffinity(w.Handle, 0x11);
                 }
-                item.Checked = WindowHandler.GetWindowDisplayAffinity(w.Handle) > 0;
+                // If it should not be hidden but is, show it
+                else if (!shouldBeHidden && currentlyHidden)
+                {
+                    WindowHandler.SetWindowDisplayAffinity(w.Handle, 0x0);
+                }
+
+                item.Checked = shouldBeHidden;
                 windowListView.Items.Add(item);
             }
 
             windowListView.EndUpdate();
             UpdateStatus();
-        }
-
-        private void ApplyCurrentSettings()
-        {
-            // Re-apply saved settings to current windows
-            foreach (var w in currentWindows)
-            {
-                bool shouldHide = savedWindowTitles.Any(sw => sw.ProcessId == w.ProcessId || sw.Title == w.Title);
-                WindowHandler.SetWindowDisplayAffinity(w.Handle, shouldHide ? 0x11 : 0x0);
-            }
-            ApplyFilter();
         }
 
         private void windowListView_ItemChecked(object sender, ItemCheckedEventArgs e)
@@ -138,13 +115,15 @@ namespace WindowSharingHider
                     WindowHandler.SetWindowDisplayAffinity(w.Handle, target ? 0x11 : 0x0);
                     if (target)
                     {
-                        // Add or update saved titles
-                        if (!savedWindowTitles.Any(x => x.ProcessId == w.ProcessId))
-                            savedWindowTitles.Add((w.Title, w.ProcessId));
+                        // Add both PID and Title to hidden sets
+                        hiddenPIDs.Add(w.ProcessId);
+                        hiddenTitles.Add(w.Title);
                     }
                     else
                     {
-                        savedWindowTitles.RemoveAll(x => x.ProcessId == w.ProcessId || x.Title == w.Title);
+                        // Remove PID and Title from hidden sets
+                        hiddenPIDs.Remove(w.ProcessId);
+                        hiddenTitles.Remove(w.Title);
                     }
                     UpdateStatus();
                 }
@@ -158,8 +137,22 @@ namespace WindowSharingHider
 
         private void UpdateStatus()
         {
-            int hiddenCount = savedWindowTitles.Count;
-            lblStatus.Text = $"Total Windows: {currentWindows.Count}, Hidden: {hiddenCount}";
+            int hiddenCount = hiddenPIDs.Count + hiddenTitles.Count;
+            lblStatus.Text = $"Total Windows: {currentWindows.Count}, Hidden (by PID or Title): {hiddenCount}";
+        }
+
+        private void btnShowAll_Click(object sender, EventArgs e)
+        {
+            // Cancel all hiding
+            hiddenPIDs.Clear();
+            hiddenTitles.Clear();
+
+            // Show all windows
+            foreach (var w in currentWindows)
+            {
+                WindowHandler.SetWindowDisplayAffinity(w.Handle, 0x0);
+            }
+            ApplyFilter();
         }
 
         [DllImport("user32.dll", SetLastError = true)]
