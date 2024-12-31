@@ -9,10 +9,11 @@
         private System.Windows.Forms.Timer timer;
         private System.Windows.Forms.ToolStrip toolStrip;
         private System.Windows.Forms.ToolStripButton btnRefresh;
+        private System.Windows.Forms.ToolStripButton btnShowAll;
         private System.Windows.Forms.ToolStripTextBox txtFilter;
+        private System.Windows.Forms.ToolStripButton btnLockToggle; // NEW
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel lblStatus;
-        private System.Windows.Forms.ToolStripButton btnShowAll; // new button
 
         protected override void Dispose(bool disposing)
         {
@@ -31,11 +32,14 @@
             this.toolStrip = new System.Windows.Forms.ToolStrip();
             this.btnRefresh = new System.Windows.Forms.ToolStripButton();
             this.btnShowAll = new System.Windows.Forms.ToolStripButton();
+            this.btnLockToggle = new System.Windows.Forms.ToolStripButton(); // NEW
             this.txtFilter = new System.Windows.Forms.ToolStripTextBox();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.lblStatus = new System.Windows.Forms.ToolStripStatusLabel();
 
+            // 
             // windowListView
+            // 
             this.windowListView.CheckBoxes = true;
             this.windowListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
                 this.colTitle,
@@ -51,53 +55,80 @@
             this.windowListView.View = System.Windows.Forms.View.Details;
             this.windowListView.ItemChecked += new System.Windows.Forms.ItemCheckedEventHandler(this.windowListView_ItemChecked);
 
+            // 
             // colTitle
+            // 
             this.colTitle.Text = "Window Title";
             this.colTitle.Width = 350;
 
+            // 
             // colPID
+            // 
             this.colPID.Text = "PID";
             this.colPID.Width = 80;
 
+            // 
             // timer
-            this.timer.Interval = 2000;
+            // 
+            this.timer.Interval = 2000; // You can change to 10000 or any other interval.
             this.timer.Tick += new System.EventHandler(this.timer_Tick);
 
+            // 
             // toolStrip
+            // 
             this.toolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
                 this.btnRefresh,
                 this.btnShowAll,
+                this.btnLockToggle, // Add the NEW lock button
                 this.txtFilter});
-            this.toolStrip.Location = new System.Drawing.Point(0,0);
+            this.toolStrip.Location = new System.Drawing.Point(0, 0);
             this.toolStrip.Name = "toolStrip";
             this.toolStrip.Size = new System.Drawing.Size(500, 25);
             this.toolStrip.TabIndex = 1;
 
+            // 
             // btnRefresh
+            // 
             this.btnRefresh.Text = "Refresh";
             this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
 
+            // 
             // btnShowAll
+            // 
             this.btnShowAll.Text = "Show All";
             this.btnShowAll.Click += new System.EventHandler(this.btnShowAll_Click);
 
+            // 
+            // btnLockToggle
+            // 
+            this.btnLockToggle.Text = "Lock";
+            this.btnLockToggle.Click += new System.EventHandler(this.btnLockToggle_Click);
+
+            // 
             // txtFilter
+            // 
             this.txtFilter.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
             this.txtFilter.Name = "txtFilter";
             this.txtFilter.Size = new System.Drawing.Size(150, 25);
             this.txtFilter.ToolTipText = "Filter by title...";
             this.txtFilter.TextChanged += new System.EventHandler(this.txtFilter_TextChanged);
 
+            // 
             // statusStrip
+            // 
             this.statusStrip.Items.Add(this.lblStatus);
             this.statusStrip.Location = new System.Drawing.Point(0, 325);
             this.statusStrip.Name = "statusStrip";
             this.statusStrip.Size = new System.Drawing.Size(500, 22);
 
+            // 
             // lblStatus
+            // 
             this.lblStatus.Text = "Ready";
 
+            // 
             // MainWindow
+            // 
             this.ClientSize = new System.Drawing.Size(500, 347);
             this.Controls.Add(this.windowListView);
             this.Controls.Add(this.toolStrip);
