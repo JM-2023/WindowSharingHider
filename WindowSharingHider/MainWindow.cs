@@ -104,6 +104,12 @@ namespace WindowSharingHider
                             WindowHandler.SetWindowDisplayAffinity(handle, 0x11);
                         }
 
+                        if (currentAffinity == 0x11)
+                        {
+                            WindowHandler.SetWindowDisplayAffinity(handle, 0x0);
+                            WindowHandler.SetWindowDisplayAffinity(handle, 0x11);
+                        }
+
                         // (B) Also add this PID and title to the sets,
                         //     so next time the same PID or changed title reappears, we hide it.
                         hiddenPIDs.Add(pid);
